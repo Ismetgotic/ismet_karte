@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="bs">
+<head>
+  <meta charset="UTF-8">
+  <title>Kartaška igra do 500 (multiplayer)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at top, #0f2235, #02070c 60%);
+      color: #f5f5f5;
+      margin: 0;
+      padding: 10px;
+    }
+    #app {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.3rem;
+      margin: 0 0 8px;
+      text-align: center;
+      letter-spacing: 0.03em;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .rules-wrapper {
+      flex: 1 1 60%;
+      min-width: 220px;
+    }
+    .rules-toggle {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .rules-toggle span {
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+    .rules-panel {
+      font-size: 0.75rem;
+      line-height: 1.3;
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.55);
+      max-height: 260px;
+      overflow-y: auto;
+      display: none;
+    }
+    
+    .score-box {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      min-width: 180px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+    }
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .lead-lamp {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.14);
+      box-shadow: 0 0 0 rgba(0,0,0,0.3);
+    }
+    .lead-lamp.on {
+      background: #66bb6a;
+      box-shadow: 0 0 6px rgba(102,187,106,0.9);
+    }
+    .score-box .winner {
+      
+      margin-bottom: 2px;
+    }
+    .score-box .winner {
+      margin-top: 4px;
+      color: #ffd54f;
+      font-weight: 600;
+    }
+    .lobby {
+      margin: 8px 0;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.55);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+    }
+    .lobby input {
+      width: 100%;
+      padding: 8px;
+      margin: 4px 0;
+      border-radius: 6px;
+      border: none;
+      box-sizing: border-box;
+    }
+    .lobby button {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      background: linear-gradient(135deg, #1f5fbf, #39a0ff);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .lobby button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .lobby-status {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+    #game {
+      margin-top: 10px;
+    }
+    .player-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .player-row.bottom {
+      margin-top: 8px;
+    }
+    .middle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .player-name {
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+    .player-name.me {
+      color: #80cbc4;
+      font-weight: 600;
+    }
+    .hand {
+      display: flex;
+      gap: 6px;
+    }
+    .hand-side {
+      flex-direction: column;
+    }
+    .card {
+      width: 60px;
+      height: 88px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.7);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.7);
+      background: radial-gradient(circle at top left, #ffffff, #f0f0f0 55%, #e0e0e0 80%);
+      position: relative;
+      user-select: none;
+      cursor: pointer;
+      font-weight: 600;
+      overflow: hidden;
+    }
+    .card-face {
+      position: absolute;
+      inset: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .card.red .card-face {
+      color: #c62828;
+    }
+    .card.black .card-face {
+      color: #222;
+    }
+    .card.red::before,
+    .card.red::after {
+      color: #c62828;
+    }
+    .card.black::before,
+    .card.black::after {
+      color: #222;
+    }
+    .card::before,
+    .card::after {
+      content: attr(data-label);
+      position: absolute;
+      font-size: 0.75rem;
+      line-height: 1;
+      font-weight: 600;
+    }
+    .card::before {
+      top: 4px;
+      left: 5px;
+    }
+    .card::after {
+      bottom: 4px;
+      right: 5px;
+      transform: rotate(180deg);
+    }
+    .card.back {
+      background:
+        repeating-linear-gradient(
+          45deg,
+          rgba(255,255,255,0.18) 0px,
+          rgba(255,255,255,0.18) 3px,
+          transparent 3px,
+          transparent 6px
+        ),
+        radial-gradient(circle at top, #2b5fbf, #0b1f4a 65%, #020814 90%);
+      color: #f5f5f5;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .card.back::before,
+    .card.back::after {
+      content: "";
+    }
+    .card.disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+    .card.me-turn {
+      outline: 2px solid #ffca28;
+      box-shadow: 0 0 8px rgba(255,202,40,0.7);
+    }
+    .table-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 150px;
+      margin-bottom: 80px;
+    }
+    .table-label {
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      opacity: 0.8;
+    }
+    .table-layout {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .pile {
+      position: relative;
+      width: 100px;
+      height: 220px;
+    }
+    .pile-card {
+      position: absolute;
+      left: 0;
+      right: 0;
+      margin: 0 auto;
+      transition: transform 0.15s ease, top 0.15s ease;
+    }
+    .pile-card.teamA {
+      border-color: #4caf50;
+    }
+    .pile-card.teamB {
+      border-color: #e53935;
+    }
+    .deck-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .deck-card {
+      transform: rotate(-10deg);
+    }
+    .deck-count {
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+    .status-bar {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      text-align: center;
+      min-height: 1.4em;
+    }
+    .decision-buttons {
+      margin-top: 6px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .decision-buttons button {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.8rem;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    #btnKupim {
+      background: #43a047;
+      color: #fff;
+    }
+    #btnNosiProtivnik {
+      background: #e53935;
+      color: #fff;
+    }
+    .decision-buttons button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    @media (max-width: 720px) {
+      h1 {
+        font-size: 1.1rem;
+      }
+      .middle-row {
+        gap: 4px;
+      }
+      .card {
+        width: 52px;
+        height: 76px;
+      }
+      .pile {
+        height: 220px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      #app {
+        max-width: 100%;
+      }
+      .top-bar {
+        flex-direction: column;
+      }
+      .score-box {
+        width: 100%;
+      }
+      .middle-row {
+        flex-direction: row;
+      }
+      .player-row {
+        margin-bottom: 6px;
+      }
+      .card {
+        width: 46px;
+        height: 68px;
+      }
+      .pile {
+        height: 190px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>Kartaška igra – timovi do 500 poena</h1>
+  <div class="top-bar">
+    <div class="rules-wrapper">
+      <button class="rules-toggle" id="rulesToggle">
+        Pravila / opis igre
+        <span id="rulesToggleState">(prikaži)</span>
+      </button>
+      <div class="rules-panel" id="rulesPanel">
+        <strong>Pravila (sažetak):</strong><br>
+        Špil: 7–A. Poene nose samo 10 i A (10p). Sedmica je univerzalna za produženje / preuzimanje vodstva.
+        Uvijek se dijeli u krug – svi igrači moraju imati isti broj karti pri dijeljenju (dok god ima u špilu),
+        a maksimalno 4. U rundi prvi igrač (starter) dobija tipke "Kupim" / "Nosi" nakon svakog punog
+        kruga (4, 8, 12, 16 karata). Produžiti krug može samo kartom iste cifre kao prva ili sedmicom.
+        Ako protivnička ekipa trenutno drži vodstvo (zadnji matching/7 iz suparničkog tima) starter NE može
+        "kupiti", ali i dalje može produžiti. Ako starter ili njegov saigrač produži matching/7, oni ponovo
+        preuzimaju vodstvo. Tipka "Kupim" je dozvoljena samo ako starter još uvijek drži vodstvo
+        (zadnja matching/7 karta je njegova). Tipka "Nosi" znači: nosi onaj ko trenutno drži vodstvo
+        (zadnji matching/7), bilo da je to protivnik ili saigrač.
+        Na kraju špila boduju se 10-ke i asevi, a ekipa koja je zadnja nosila sto dobija dodatnih 10 bodova
+        (nema izjednačenja). Ko otvara cijeli špil (servis): na početku partije igrač 0 (ti), a nakon svakog
+        špila – ako je ekipa servisera pobijedila, servis ostaje kod njega, a ako je izgubila, servis prelazi
+        na prvog igrača s desne strane.
+      </div>
+    </div>
+    <div class="score-box">
+      <div><strong>Rezultat</strong></div>
+      <div class="score-row">
+        <span id="scoreA">Tim A (0 + 2): 0</span>
+        <span class="lead-lamp" id="lampA"></span>
+      </div>
+      <div class="score-row">
+        <span id="scoreB">Tim B (1 + 3): 0</span>
+        <span class="lead-lamp" id="lampB"></span>
+      </div>
+      <div class="winner" id="winnerText"></div>
+    </div>
+  </div>
+
+  <div class="lobby" id="lobby">
+    <div><strong>Ulaz u sobu</strong> (max 4 igrača po sobi)</div>
+    <input type="text" id="roomCode" placeholder="Kod sobe (npr. KARTA)">
+    <input type="text" id="playerName" placeholder="Tvoje ime (npr. Ismet)">
+
+    <div style="margin:4px 0; font-size:0.8rem;">
+      Tim:
+      <label style="margin-right:10px;">
+        <input type="radio" name="teamChoice" value="A" checked> Tim A (stolice 0 i 2)
+      </label>
+      <label>
+        <input type="radio" name="teamChoice" value="B"> Tim B (stolice 1 i 3)
+      </label>
+    </div>
+
+    <button id="joinBtn">Uđi u sobu</button>
+
+    <div class="lobby-status" id="lobbyStatus"></div>
+    <div class="lobby-status" id="playersList"></div>
+    <div class="lobby-status" id="roomsList"></div>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div class="status-bar" id="statusBar"></div>
+    <div style="text-align:center; margin-top:4px;">
+      <button id="refreshStateBtn" style="font-size:0.7rem;padding:4px 10px;border-radius:999px;border:none;cursor:pointer;">
+        Osvježi igru
+      </button>
+    </div>
+    <div class="decision-buttons" id="decisionButtons" style="display:none;">
+      <button id="btnKupim">Kupim</button>
+      <button id="btnNosiProtivnik">Nosi</button>
+    </div>
+
+    <div class="player-row top">
+      <div class="player-name" id="player-2-name">Igrač 3 (gore)</div>
+      <div class="hand" id="hand-2"></div>
+    </div>
+
+    <div class="middle-row">
+      <div class="player-row">
+        <div class="player-name" id="player-3-name">Igrač 4 (lijevo)</div>
+        <div class="hand hand-side" id="hand-3"></div>
+      </div>
+
+      <div class="table-area">
+        <div class="table-label">STO</div>
+        <div class="table-layout">
+          <div class="pile" id="tablePile"></div>
+          <div class="deck-box">
+            <div class="card back deck-card" id="deckCard">
+              <div class="card-face">Špil</div>
+            </div>
+            <div class="deck-count" id="deckCount">Špil: 0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="player-row">
+        <div class="player-name" id="player-1-name">Igrač 2 (desno)</div>
+        <div class="hand hand-side" id="hand-1"></div>
+      </div>
+    </div>
+
+    <div class="player-row bottom">
+      <div class="player-name me" id="player-0-name">Ti (dole)</div>
+      <div class="hand" id="hand-0"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
+</body>
+</html>
