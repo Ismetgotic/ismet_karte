@@ -1,0 +1,552 @@
+
+<!doctype html>
+<html lang="bs">
+<head>
+  <meta charset="UTF-8">
+  <title>Kartaška igra do 500 (multiplayer)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --card-width: 52px;
+      --card-height: 76px;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at top, #0f2235, #02070c 60%);
+      color: #f5f5f5;
+      margin: 0;
+      padding: 6px;
+    }
+    #app {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.1rem;
+      margin: 2px 0 4px;
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+    a {
+      color: #8bd5ff;
+    }
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .rules-toggle {
+      font-size: 0.8rem;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    .rules-panel {
+      display: none;
+      font-size: 0.78rem;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.45);
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+    .rules-panel strong {
+      color: #ffe48b;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 8px;
+    }
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      border-radius: 10px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 8px;
+    }
+    .panel.game {
+      padding-bottom: 20px; /* više nije potreban veliki razmak za donje dugmad */
+      position: relative;
+    }
+
+    .panel h2 {
+      margin: 0 0 4px;
+      font-size: 0.9rem;
+    }
+
+    .lobby input[type="text"] {
+      width: 100%;
+      padding: 5px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.3);
+      color: #f5f5f5;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .lobby button {
+      width: 100%;
+      border-radius: 999px;
+      border: none;
+      padding: 6px 10px;
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      color: #020617;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-bottom: 4px;
+    }
+    .lobby button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .lobby-status {
+      font-size: 0.78rem;
+      opacity: 0.9;
+      margin-bottom: 3px;
+    }
+    .team-choice {
+      font-size: 0.75rem;
+      margin-bottom: 4px;
+    }
+    .team-choice label {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    .rooms-list {
+      font-size: 0.75rem;
+      max-height: 80px;
+      overflow-y: auto;
+      opacity: 0.85;
+    }
+
+    .scoreboard {
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+    }
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .lead-lamp {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.14);
+      box-shadow: 0 0 0 rgba(0,0,0,0.3);
+    }
+    .lead-lamp.on {
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34,197,94,0.7);
+    }
+    .score-label {
+      opacity: 0.9;
+    }
+    .deck-indicator {
+      font-size: 0.75rem;
+      opacity: 0.85;
+    }
+
+    .status-bar {
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(148,163,184,0.45);
+      text-align: center;
+    }
+    .refresh-wrap {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .refresh-btn {
+      font-size: 0.7rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: rgba(148,163,184,0.25);
+      color: #e2e8f0;
+    }
+
+    .table-wrapper {
+      border-radius: 14px;
+      background: radial-gradient(circle at top, rgba(15,118,110,0.5), rgba(15,23,42,0.95));
+      border: 1px solid rgba(148,163,184,0.5);
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      min-height: 380px;
+      position: relative;
+    }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+      gap: 4px;
+    }
+    .player-row.top {
+      justify-content: center;
+    }
+    .player-row.bottom {
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .player-row.side-row {
+      flex: 1;
+      justify-content: space-between;
+    }
+    .player-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .player-name {
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+    .player-name.me {
+      font-weight: 600;
+      color: #facc15;
+    }
+
+    .hand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 2px 0;
+      min-height: var(--card-height);
+    }
+    .hand-side {
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+      min-height: calc(var(--card-height) * 4 + 16px);
+    }
+
+    .middle-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 6px;
+      flex: 1;
+    }
+    .pile {
+      position: relative;
+      width: calc(var(--card-width) + 64px);
+      max-width: 50%;
+      margin: 0 auto;
+      height: 160px;
+    }
+
+    .card {
+      position: relative;
+      width: var(--card-width);
+      height: var(--card-height);
+      border-radius: 6px;
+      background: #f8fafc;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: #020617;
+      flex-shrink: 0;
+    }
+    .card .card-face {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .card.red {
+      color: #b91c1c;
+    }
+    .card.black {
+      color: #020617;
+    }
+
+    .card-corner {
+      position: absolute;
+      font-size: 0.55rem;
+      font-weight: 600;
+      pointer-events: none;
+    }
+    .card.red .card-corner {
+      color: #b91c1c;
+    }
+    .card.black .card-corner {
+      color: #0f172a;
+    }
+    .card-corner.tl {
+      top: 3px;
+      left: 4px;
+    }
+    .card-corner.br {
+      bottom: 3px;
+      right: 4px;
+      transform: rotate(180deg);
+    }
+
+    .card.back {
+      background:
+        repeating-linear-gradient(
+          45deg,
+          #7f1d1d,
+          #7f1d1d 4px,
+          #991b1b 4px,
+          #991b1b 8px
+        );
+      border-color: #b91c1c;
+      color: #fee2e2;
+      box-shadow: 0 4px 10px rgba(127,29,29,0.6);
+    }
+    .card.back .card-face {
+      font-size: 1.2rem;
+    }
+
+    .card.disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .card.me-turn {
+      cursor: pointer;
+      box-shadow: 0 0 0 2px #22c55e, 0 6px 14px rgba(15,23,42,0.8);
+      transform: translateY(-1px);
+    }
+
+    .pile-card {
+      position: absolute;
+      left: 0;
+    }
+
+    
+    
+    .decision-buttons {
+      position: absolute;
+      left: 52%;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      padding: 2px;
+      z-index: 1200;
+    }    .decision-buttons button {
+      min-width: 90px;
+      height: 38px;
+      border-radius: 18px;
+      border: none;
+      padding: 0 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+.decision-buttons .primary {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #022c22;
+    }
+    .decision-buttons .secondary {
+      background: linear-gradient(135deg, #b91c1c, #ef4444);
+      color: #fee2e2;
+      border: none;
+    }
+    .decision-buttons button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .winner-text {
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 3px;
+      color: #facc15;
+    }
+
+    @media (max-width: 600px) {
+      :root {
+        --card-width: 46px;
+        --card-height: 68px;
+      }
+      .table-wrapper {
+        min-height: 340px;
+      }
+      .pile {
+        height: 150px;
+      }
+      .player-row {
+        margin-bottom: 3px;
+      }
+      .hand-side {
+        min-height: calc(var(--card-height) * 4 + 14px);
+      }
+    }
+  
+
+    /* Isticanje igraca na potezu */
+    .player-name.turn {
+      text-shadow: 0 0 8px rgba(56,189,248,0.9);
+      color: #7dd3fc;
+      font-weight: 700;
+    }
+    .player-name.me {
+      color: #fde68a;
+      font-weight: 700;
+    }
+
+    /* Naslov kompaktniji kad igra krene */
+    body.game-active h1 {
+      font-size: 1.05rem;
+      margin-bottom: 2px;
+    }
+    @media (max-width: 700px) {
+      body.game-active h1 {
+        display: none;
+      }
+    }
+
+    /* Blaga animacija bacenih karata na sto */
+    .pile-card {
+      animation: pileDrop 0.18s ease-out;
+    }
+    @keyframes pileDrop {
+      from {
+        transform: translateY(-10px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Kartaška igra do 500</h1>
+
+  <div class="top-bar">
+    <div class="rules-toggle" id="rulesToggle">
+      Pravila igre <span id="rulesToggleState">(prikaži)</span>
+    </div>
+  </div>
+
+  <div class="rules-panel" id="rulesPanel">
+    <strong>Osnovna pravila:</strong><br>
+    • Igra 4 igrača, dva tima: A (sjedala 0 i 2) i B (1 i 3).<br>
+    • Igra se sa kartama 7 do A; boduju se samo 10 i A (10 poena).<br>
+    • Sedmica je džoker za produženje kruga i preuzimanje vodstva.<br>
+    • Startni igrač određuje prije svake runde da li će „Kupim“ (nosim ja) ili „Nosi“ (nositi će ekipa koja drži vodstvo).<br>
+    • Zadnji sto donosi dodatnih 10 poena, a ako jedan tim uzme svih 9 poena u rundi dobija još +10 bonusa.<br>
+    • Igra se do 500 poena.
+  </div>
+
+  <div class="layout">
+    <div class="panel lobby" id="lobby">
+      <h2>Ulaz u sobu</h2>
+      <input type="text" id="roomCode" placeholder="Kod sobe (npr. KARTA)">
+      <input type="text" id="playerName" placeholder="Tvoje ime (npr. Ismet)">
+
+      <div class="team-choice">
+        Tim:
+        <label>
+          <input type="radio" name="teamChoice" value="A" checked> Tim A (sjedala 0 i 2)
+        </label>
+        <label>
+          <input type="radio" name="teamChoice" value="B"> Tim B (1 i 3)
+        </label>
+      </div>
+
+      <button id="joinBtn">Uđi u sobu</button>
+
+      <div class="lobby-status" id="lobbyStatus"></div>
+      <div class="lobby-status" id="playersList"></div>
+      <div class="rooms-list" id="roomsList"></div>
+    </div>
+
+    <div class="panel game" id="game" style="display:none;">
+      <div class="scoreboard">
+        <div class="score-row">
+          <div class="lead-lamp" id="lampA"></div>
+          <div class="score-label" id="scoreA">Tim A: 0</div>
+        </div>
+        <div class="score-row">
+          <div class="lead-lamp" id="lampB"></div>
+          <div class="score-label" id="scoreB">Tim B: 0</div>
+        </div>
+        <div class="deck-indicator" id="deckCount">Špil: 32</div>
+      </div>
+
+      <div class="status-bar" id="statusBar"></div>
+      <div class="refresh-wrap">
+        <button class="refresh-btn" id="refreshStateBtn">Osvježi igru</button>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="player-row top">
+          <div class="player-block">
+            <div class="player-name" id="player-2-name">Igrač 2</div>
+            <div class="hand" id="hand-2"></div>
+          </div>
+        </div>
+
+        <div class="middle-row">
+          <div class="player-block">
+            <div class="player-name" id="player-3-name">Igrač 3</div>
+            <div class="hand hand-side" id="hand-3"></div>
+          </div>
+
+          <div class="pile" id="tablePile"></div>
+
+          <div class="player-block">
+            <div class="player-name" id="player-1-name">Igrač 1</div>
+            <div class="hand hand-side" id="hand-1"></div>
+          </div>
+        </div>
+
+        <div class="player-row bottom">
+          <div class="player-block">
+            <div class="player-name me" id="player-0-name">Ti (dole)</div>
+            <div class="hand" id="hand-0"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="decision-buttons" id="decisionButtons">
+        <button class="primary" id="btnKupim">Kupim</button>
+        <button class="secondary" id="btnNosiProtivnik">Nosi</button>
+      </div>
+
+      <div class="winner-text" id="winnerText"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
+</body>
+</html>
